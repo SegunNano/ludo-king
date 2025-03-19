@@ -1,0 +1,29 @@
+{
+  "name": "ludo-king",
+  "version": "1.0.0",
+  "description": "Ludo King Revamped",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run express\" \"npm run tailwind\"",
+    "express": "nodemon index.js",
+    "tailwind": "tailwindcss -i ./tailwind.css -o ./public/stylesheets/styles.css --watch"
+  },
+  "author": "Fadipe Segun Raphael",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "ejs-mate": "^4.0.0",
+    "express": "^4.21.2",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.12.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "tailwindcss": "^3.4.17"
+  }
+}
