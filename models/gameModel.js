@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 const { Schema, model, models } = mongoose;
 const required = true;
-const unique = true;
-gameDetails = { type: Number, required, default: 0 };
 const seedDefaultPosition = {
   red_1: 0,
   red_2: 0,

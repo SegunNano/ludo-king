@@ -7,8 +7,10 @@ import { fileURLToPath } from "url";
 import ejsMate from "ejs-mate";
 import { Server } from "socket.io";
 import http from "http";
+import session from "express-session";
 
 import connectDB from "./config/db.js";
+import sessionConfig from "./config/sessionConfig.js";
 
 process.env.NODE !== "production" && dotenv.config();
 
@@ -28,6 +30,7 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(session(sessionConfig));
 app.use(flash());
 
 // app.use((req, res, next) => {

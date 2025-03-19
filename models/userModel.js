@@ -10,6 +10,7 @@ const gameDetails = { type: Number, required, default: 0 };
 const userSchema = new Schema(
   {
     username: { type: String, required },
+    googleId: { type: String, required: true, unique: true },
     email: { type: String, required, unique },
     image: { type: String, unique },
     gamesPlayed: gameDetails,
