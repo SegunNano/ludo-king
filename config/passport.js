@@ -1,7 +1,9 @@
-import { request } from "express";
 import passport from "passport";
-import User from "../models/userModel";
 import { Strategy } from "passport-google-oauth2";
+import dotenv from "dotenv";
+
+import User from "../models/userModel.js    ";
+
 process.env.NODE !== "production" && dotenv.config();
 
 const strategy = new Strategy(

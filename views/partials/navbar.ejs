@@ -1,0 +1,29 @@
+<nav class="bg-[#fff] border-gray-200 border-b-4 dark:bg-gray-900">
+    <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
+        <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M12 9v6" />
+                <path d="M16 15v6" />
+                <path d="M16 3v6" />
+                <path d="M3 15h18" />
+                <path d="M3 9h18" />
+                <path d="M8 15v6" />
+                <path d="M8 3v6" />
+            </svg>
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Dice Rush</span>
+        </a>
+        <div class="flex items-center space-x-6 rtl:space-x-reverse">
+            <% if (currentUser){ %>
+                <a href="/auth/logout" class="text-md  text-blue-600 dark:text-blue-500 hover:underline"> Logout
+                </a>
+                <img src='<%= currentUser.image %>' class="size-8 rounded-full" referrerpolicy="no-referrer" />
+                <% } else { %>
+                    <a href="/auth/google" class="text-md  text-blue-600 dark:text-blue-500 hover:underline"> Login
+                    </a>
+                    <% } %>
+
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,6 @@
+.home-hero-bg {
+  background-image: url(/assets/ludo-hero-bg.jpg);
+  background-position: right;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
