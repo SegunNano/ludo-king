@@ -5,6 +5,7 @@ const demoBody = {
 };
 
 const colors = ["red", "green", "yellow", "blue"];
+
 const getSeedColor = (playersList, playersNo, arrangeRandomly) => {
   const usedColors = new Set(playersList.flatMap((player) => player.seedColor));
   const availableColors = colors.filter((color) => !usedColors.has(color));

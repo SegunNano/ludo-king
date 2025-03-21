@@ -25,4 +25,25 @@ const createGameRoom = async (req, res) => {
   res.redirect("/");
 };
 
-export { gameRoomForm, createGameRoom };
+const gameRoom = async (req, res) => {
+  const { idx } = req.params;
+  const gameRoom = await Game.findById(idx);
+  const { playerNo, playersList, arrangeRandomly } = gameRoom;
+  const isPlayer = playersList.some(
+    (pl) => pl.player.toString() === req.user._id.toString()
+  );
+  if (isPlayer) return res.render("game/gameRoom");
+
+  if (playerNo === playersList.length) return res.redirect("/");
+  const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
+
+  playersList.push({ player: req.user._id, seedColor });
+
+  gameRoom.playersList = playersList;
+  await gameRoom.save();
+
+  res.render("game/gameRoom");
+
+  console.log(isPlayer);
+};
+export { gameRoomForm, createGameRoom, gameRoom };

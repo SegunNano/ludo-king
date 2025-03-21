@@ -5,11 +5,11 @@ const logout = (req, res, next) => {
       req.session.regenerate((err) => {
         if (err) return next(err);
       });
-      req.flash("success", `You've successfully logged out!`);
+      // req.flash("success", `You've successfully logged out!`);
       res.redirect("/");
     });
   } catch (e) {
-    req.flash("error", "Internal server error, Please try again!");
+    // req.flash("error", "Internal server error, Please try again!");
     return res.redirect("/");
   }
 };
