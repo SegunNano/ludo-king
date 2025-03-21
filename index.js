@@ -14,6 +14,7 @@ import sessionConfig from "./config/sessionConfig.js";
 import passport from "./config/passport.js";
 
 import authRoutes from "./routes/authRoutes.js";
+import gameRoutes from "./routes/gameRoutes.js";
 
 process.env.NODE !== "production" && dotenv.config();
 
@@ -51,6 +52,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/game", gameRoutes);
 
 app.get("/", (req, res) => {
   console.log(req.session, req.user);

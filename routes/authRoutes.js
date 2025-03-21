@@ -2,6 +2,7 @@ import express from "express";
 import passport from "passport";
 
 import { logout } from "../controllers/authControllers.js";
+import { catchAsync } from "../../url_shortener/utils/asyncHandlers.js";
 
 const router = express.Router();
 

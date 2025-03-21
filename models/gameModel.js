@@ -32,8 +32,11 @@ const gameSchema = new Schema({
   completed: { type: Boolean, default: false },
   seedPositions: { type: Object, required, default: seedDefaultPosition },
   playersList: [playersList],
+  playerNo: { type: Number, required },
+  playWithAnonymous: { type: Boolean, required },
+  arrangeRandomly: { type: Boolean, required },
 });
 
-const Game = models?.Game || model("User", gameSchema);
+const Game = models?.Game || model("Game", gameSchema);
 
 export default Game;

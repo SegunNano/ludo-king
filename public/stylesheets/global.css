@@ -1,3 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Flamenco:wght@300;400&family=Rochester&display=swap");
+
+* {
+  font-family: "Flamenco", system-ui;
+}
+
 .home-hero-bg {
   background-image: url(/assets/ludo-hero-bg.jpg);
   background-position: right;
