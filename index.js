@@ -15,6 +15,7 @@ import passport from "./config/passport.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import gameRoutes from "./routes/gameRoutes.js";
+import { setupSocket } from "./config/socketIo.js";
 
 process.env.NODE !== "production" && dotenv.config();
 
@@ -24,7 +25,7 @@ const __dirname = path.dirname(__filename);
 connectDB();
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = setupSocket(server);
 
 app.engine("ejs", ejsMate);
 
@@ -57,10 +58,6 @@ app.use("/game", gameRoutes);
 app.get("/", (req, res) => {
   console.log(req.session, req.user);
   res.render("home");
-});
-
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 });
 
 const port = process.env.PORT || 3000;

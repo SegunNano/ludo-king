@@ -23,7 +23,6 @@ const createGameRoom = async (req, res) => {
     playWithAnonymous,
   });
   await newGame.save();
-  console.log(newGame);
   res.redirect(`/game/${newGame._id}`);
 };
 
@@ -34,7 +33,6 @@ const gameRoom = async (req, res) => {
   const isPlayer = playersList.some(
     (pl) => pl.player.toString() === req.user._id.toString()
   );
-  console.log(isPlayer, playersList);
   if (isPlayer) return res.render("game/gameRoom");
   if (playerNo === playersList.length) return res.redirect("/");
   const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
