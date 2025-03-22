@@ -9,8 +9,7 @@ import {
 const router = express.Router();
 
 router.route("/create-room").get(gameRoomForm).post(catchAsync(createGameRoom));
-router.route("/:idx").get(gameRoom);
-
 router.route("/create-room-post").get(catchAsync(createGameRoom));
+router.route("/:idx").get(gameRoom);
 
 export default router;

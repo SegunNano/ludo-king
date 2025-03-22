@@ -59,5 +59,9 @@ app.get("/", (req, res) => {
   res.render("home");
 });
 
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+});
+
 const port = process.env.PORT || 3000;
 server.listen(port, () => console.log(`Server running on port: ${port}`));

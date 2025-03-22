@@ -1,5 +1,5 @@
 const demoBody = {
-  playerNo: 2,
+  playerNo: 4,
   playWithAnonymous: false,
   playArrangement: "random",
 };

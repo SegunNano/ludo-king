@@ -12,8 +12,10 @@ const createGameRoom = async (req, res) => {
   const { playerNo, playWithAnonymous, playArrangement } = demoBody;
   const arrangeRandomly = playArrangement === "random";
   let playersList = [];
+
   const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
   playersList = [{ player: req.user._id, seedColor }];
+
   const newGame = new Game({
     playerNo,
     playersList,
@@ -22,7 +24,7 @@ const createGameRoom = async (req, res) => {
   });
   await newGame.save();
   console.log(newGame);
-  res.redirect("/");
+  res.redirect(`/game/${newGame._id}`);
 };
 
 const gameRoom = async (req, res) => {
@@ -32,8 +34,8 @@ const gameRoom = async (req, res) => {
   const isPlayer = playersList.some(
     (pl) => pl.player.toString() === req.user._id.toString()
   );
+  console.log(isPlayer, playersList);
   if (isPlayer) return res.render("game/gameRoom");
-
   if (playerNo === playersList.length) return res.redirect("/");
   const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
 
@@ -43,7 +45,5 @@ const gameRoom = async (req, res) => {
   await gameRoom.save();
 
   res.render("game/gameRoom");
-
-  console.log(isPlayer);
 };
 export { gameRoomForm, createGameRoom, gameRoom };
