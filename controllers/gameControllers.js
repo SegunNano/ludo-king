@@ -29,6 +29,7 @@ const createGameRoom = async (req, res) => {
 const gameRoom = async (req, res) => {
   const { idx } = req.params;
   const gameRoom = await Game.findById(idx);
+  if (!gameRoom) return res.redirect("/game/create-room");
   const { playerNo, playersList, arrangeRandomly } = gameRoom;
   const isPlayer = playersList.some(
     (pl) => pl.player.toString() === req.user._id.toString()

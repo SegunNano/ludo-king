@@ -10,3 +10,28 @@
   background-size: cover;
   background-repeat: no-repeat;
 }
+
+.playGround {
+  /* width: 100%; */
+  aspect-ratio: 1;
+  background: url(/assets/ludo-board.jpg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.playGround div {
+  aspect-ratio: 1;
+  width: 6.66666666666666666666666666666666666666666666666666666666666666666666667%;
+  margin: 0;
+}
+
+.playGround div div {
+  width: 35%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 0.2px solid rgba(0, 0, 0, 0.267);
+  box-shadow: 3px 2px rgba(0, 0, 0, 0.466);
+}

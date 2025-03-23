@@ -24,6 +24,7 @@ const playersList = Schema(
   {
     player: { type: Schema.Types.ObjectId, ref: "User", required },
     seedColor: { type: Array, required },
+    socketId: { type: String },
   },
   { timestamps: true }
 );
@@ -33,8 +34,9 @@ const gameSchema = new Schema({
   seedPositions: { type: Object, required, default: seedDefaultPosition },
   playersList: [playersList],
   playerNo: { type: Number, required },
-  playWithAnonymous: { type: Boolean, required },
-  arrangeRandomly: { type: Boolean, required },
+  playWithAnonymous: { type: Boolean },
+  currentPlayer: { type: Number },
+  arrangeRandomly: { type: Boolean },
 });
 
 const Game = models?.Game || model("Game", gameSchema);

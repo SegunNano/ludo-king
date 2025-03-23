@@ -15,7 +15,7 @@ import passport from "./config/passport.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import gameRoutes from "./routes/gameRoutes.js";
-import { setupSocket } from "./config/socketIo.js";
+import setupSocket from "./config/socketIo.js";
 
 process.env.NODE !== "production" && dotenv.config();
 
