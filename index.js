@@ -56,7 +56,7 @@ app.use("/auth", authRoutes);
 app.use("/game", gameRoutes);
 
 app.get("/", (req, res) => {
-  console.log(req.session, req.user);
+  // console.log(req.session, req.user);
   res.render("home");
 });
 

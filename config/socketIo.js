@@ -57,7 +57,6 @@ export default function setupSocket(server) {
     });
 
     socket.on("disconnect", async () => {
-      console.log(socket.id);
       try {
         const game = await Game.findOneAndUpdate(
           { "playersList.socketId": socket.id },
