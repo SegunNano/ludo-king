@@ -56,6 +56,15 @@ export default function setupSocket(server) {
       }
     });
 
+    socket.on("rollDie", (gameId) => {
+      const dieOutcome = [
+        Math.floor(Math.random() * 6 + 1),
+        Math.floor(Math.random() * 6 + 1),
+      ];
+      console.log(dieOutcome);
+      io.to(gameId).emit("dieOutcome", dieOutcome);
+    });
+
     socket.on("disconnect", async () => {
       try {
         const game = await Game.findOneAndUpdate(

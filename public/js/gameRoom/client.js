@@ -36,15 +36,38 @@ const ludoSections = [
   },
 ];
 
+const buttonDiv = document.querySelector(".buttons");
+gameId && socket.emit("joinRoom", gameId);
+
+socket.on("connect", () => {
+  console.log(socket.id);
+  console.log("Client connected");
+});
+
+socket.on("gameUpdate", (game) => {
+  const { seedPositions, playersList, currentPlayer, playerNo } = game;
+  updateSeedPositions(seedPositions);
+  if (
+    playerNo === playersList.length &&
+    playersList.some(() => playersList[currentPlayer].socketId === socket.id)
+  ) {
+    playerButton = document.createElement("button");
+    playerButton.append(`Click to roll-die`);
+    playerButton.classList.add("button", "is-responsive", "is-large");
+    buttonDiv.append(playerButton);
+    playerButton.addEventListener("click", playGame);
+  }
+  console.log({ seedPositions, playersList, currentPlayer });
+});
+socket.on("dieOutcome", (dieOutcome) => {
+  rollDice(dieOutcome);
+});
+
 function getSeedRealPosition(seed, relativePosition) {
   const color = seed.split("_")[0]; // Extract color (e.g., "red" from "red_1")
   const seedIndex = parseInt(seed.split("_")[1]) - 1; // Convert "red_1" → 0 index
-
   const section = ludoSections.find((sec) => sec.color === color);
-  if (!section) {
-    console.warn(`Invalid color: ${color}`);
-    return null;
-  }
+  if (!section) return null;
 
   let runWay = [...section.normal.slice(8)]; // Start from 8th index
 
@@ -63,46 +86,8 @@ function getSeedRealPosition(seed, relativePosition) {
   runWay.push(...section.normal.slice(0, 7), ...section.finishing);
 
   // Get the real board position
-  console.log(runWay[relativePosition], section.startings[seedIndex]);
   return runWay[relativePosition - 1] || section.startings[seedIndex];
 }
-
-function getRealSeedPositions(seedPositions) {
-  let realPositions = {};
-
-  for (const [seed, relativePosition] of Object.entries(seedPositions)) {
-    const color = seed.split("_")[0]; // Extract color ("red", "green", etc.)
-    const seedIndex = parseInt(seed.split("_")[1]) - 1; // Extract number (1 → 0 index)
-
-    if (!ludoSections[color]) continue; // Skip if color is invalid
-
-    let runWay = [...ludoSections[color].normal.slice(8)]; // Take normal path from index 8
-
-    // Merge pathways from other colors (circular order)
-    for (
-      let i = colorList.indexOf(color) + 1;
-      i <= colorList.indexOf(color) + 3;
-      i++
-    ) {
-      let nextColor = colorList[i % 4]; // Cycle through colors
-      runWay = [...runWay, ...ludoSections[nextColor].normal];
-    }
-
-    // Append start and finishing paths
-    runWay = [
-      ...runWay,
-      ...ludoSections[color].normal.slice(0, 7),
-      ...ludoSections[color].finishing,
-    ];
-
-    // Assign correct board position
-    realPositions[seed] =
-      runWay[relativePosition] || ludoSections[color].startings[seedIndex];
-  }
-
-  return realPositions;
-}
-
 function updateSeedPositions(seedPositions) {
   const realPositions = Object.fromEntries(
     Object.entries(seedPositions).map(([seed, pos]) => [
@@ -122,21 +107,39 @@ function updateSeedPositions(seedPositions) {
       targetBox.appendChild(seedElement);
     }
   }
-
-  console.log("Seed positions updated:", realPositions);
+}
+function playGame() {
+  // playerButton.remove();
+  socket.emit("rollDie", gameId);
 }
 
-gameId && socket.emit("joinRoom", gameId);
+function rollDice(dieOutcome) {
+  const dice1 = document.getElementById("dice-1");
+  const dice2 = document.getElementById("dice-2");
+  const lowNumDie = Math.min(...dieOutcome);
+  const highNumDie = Math.max(...dieOutcome);
+  let count = 0;
+  dice1.classList.add("rolling");
+  dice2.classList.add("rolling");
+  let rolls = 10;
+  let counter = 0;
+  let interval = setInterval(() => {
+    dice1.innerHTML = getDiceFace(Math.floor(Math.random() * 6 + 1));
+    dice2.innerHTML = getDiceFace(Math.floor(Math.random() * 6 + 1));
+    counter++;
 
-socket.on("connect", () => {
-  console.log(socket.id);
-  console.log("Client connected");
-});
+    if (counter >= rolls) {
+      clearInterval(interval);
+      dice1.innerHTML = getDiceFace(dieOutcome[0]);
+      dice2.innerHTML = getDiceFace(dieOutcome[1]);
+      dice1.classList.remove("rolling");
+      dice2.classList.remove("rolling");
+      console.log({ highNumDie, lowNumDie });
+      // TODO: an acction for here!!
+    }
+  }, 100);
+}
 
-socket.on("gameUpdate", (game) => {
-  const { seedPositions, playersList, currentPlayer } = game;
-  updateSeedPositions(seedPositions);
-  if (playersList.some(() => playersList[currentPlayer].socketId === socket.id))
-    console.log("I am the current player, where is my button so I can play");
-  console.log({ seedPositions, playersList, currentPlayer });
-});
+function getDiceFace(value) {
+  return dieFaceArr[value - 1];
+}
