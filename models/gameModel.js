@@ -20,19 +20,16 @@ const seedDefaultPosition = {
   blue_4: 0,
 };
 
-const playersList = Schema(
-  {
-    player: { type: Schema.Types.ObjectId, ref: "User", required },
-    seedColor: { type: Array, required },
-    socketId: { type: String },
-  },
-  { timestamps: true }
-);
-
 const gameSchema = new Schema({
   completed: { type: Boolean, default: false },
   seedPositions: { type: Object, required, default: seedDefaultPosition },
-  playersList: [playersList],
+  playersList: [
+    {
+      player: { type: Schema.Types.ObjectId, ref: "User", required },
+      seedColor: { type: Array, required },
+      socketId: { type: String },
+    },
+  ],
   playerNo: { type: Number, required },
   playWithAnonymous: { type: Boolean },
   currentPlayer: { type: Number },

@@ -1,5 +1,6 @@
 const socket = io();
 const gameId = window.location.pathname.split("/").pop();
+let gameObj = null;
 const dieFaceArr = [
   '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M12 12h.01"/>',
   '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 9h.01"/><path d="M9 15h.01"/>',
@@ -37,6 +38,7 @@ const ludoSections = [
 ];
 
 const buttonDiv = document.querySelector(".buttons");
+const gameInfo = document.querySelector(".game-info");
 gameId && socket.emit("joinRoom", gameId);
 
 socket.on("connect", () => {
@@ -45,19 +47,12 @@ socket.on("connect", () => {
 });
 
 socket.on("gameUpdate", (game) => {
-  const { seedPositions, playersList, currentPlayer, playerNo } = game;
-  updateSeedPositions(seedPositions);
-  if (
-    playerNo === playersList.length &&
-    playersList.some(() => playersList[currentPlayer].socketId === socket.id)
-  ) {
-    playerButton = document.createElement("button");
-    playerButton.append(`Click to roll-die`);
-    playerButton.classList.add("button", "is-responsive", "is-large");
-    buttonDiv.append(playerButton);
-    playerButton.addEventListener("click", playGame);
-  }
-  console.log({ seedPositions, playersList, currentPlayer });
+  gameObj = game;
+  const rollDieButton = document.querySelector(".roll-die-button");
+  rollDieButton && rollDieButton.remove();
+
+  updateGame(game);
+  console.log(game);
 });
 socket.on("dieOutcome", (dieOutcome) => {
   rollDice(dieOutcome);
@@ -109,7 +104,8 @@ function updateSeedPositions(seedPositions) {
   }
 }
 function playGame() {
-  // playerButton.remove();
+  const rollDieButton = document.querySelector(".roll-die-button");
+  rollDieButton && rollDieButton.remove();
   socket.emit("rollDie", gameId);
 }
 
@@ -134,12 +130,252 @@ function rollDice(dieOutcome) {
       dice2.innerHTML = getDiceFace(dieOutcome[1]);
       dice1.classList.remove("rolling");
       dice2.classList.remove("rolling");
-      console.log({ highNumDie, lowNumDie });
-      // TODO: an acction for here!!
+
+      decisionFilter(count, lowNumDie, highNumDie);
     }
   }, 100);
 }
 
 function getDiceFace(value) {
   return dieFaceArr[value - 1];
+}
+
+function updateGame(game) {
+  const { seedPositions, playersList, currentPlayer, playerNo } = game;
+  updateSeedPositions(seedPositions);
+  const gameInfoPara = document.querySelector(".game-info");
+  if (playerNo !== playersList.length) {
+    gameInfoPara.textContent = "Players not completed";
+    return;
+  }
+  if (!playersList.every((player) => player.socketId)) {
+    const disconnectedPlayer = playersList.find((player) => !player.socketId);
+    gameInfoPara.textContent = `${disconnectedPlayer?.player?.username} has disconnected`;
+    return;
+  }
+  gameInfoPara.textContent = "";
+  const isCurrentPlayer = playersList[currentPlayer]?.socketId === socket.id;
+  if (isCurrentPlayer) {
+    const playerButton = document.createElement("button");
+    playerButton.textContent = "Click to roll-die";
+    playerButton.classList.add("button", "roll-die-button");
+    buttonDiv.append(playerButton);
+    playerButton.addEventListener("click", playGame);
+  }
+
+  // console.log({ gameIsPaused: false, msg: "Players complete in room" });
+}
+
+function decisionFilter(count, lowNumDie, highNumDie) {
+  const { playersList, seedPositions, currentPlayer } = gameObj;
+
+  if (playersList[currentPlayer]?.socketId !== socket.id) {
+    const gameInfoPara = document.querySelector(".game-info");
+    gameInfoPara.textContent = `${playersList[currentPlayer].player.username} is playing.`;
+    return;
+  }
+  const player = playersList.find((player) => player.socketId === socket.id);
+  console.log({ count });
+  if (count > 1) return socket.emit("nextPlayer", gameId);
+  let die = count === 0 ? highNumDie : lowNumDie;
+
+  // Flatten all seed positions into an array
+  const seedValues = player.seedColor.flatMap(
+    (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
+  );
+
+  // Separate `inSeedArray` and `outSeedArray`
+  const inSeedsArray = seedValues.filter((pos) => seedPositions[pos] === 0);
+  const movableSeedsArray = seedValues.filter(
+    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] < 57
+  );
+  const outSeedsArray = seedValues.filter(
+    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 58
+  );
+
+  const sCategories = { inSeedsArray, outSeedsArray, movableSeedsArray };
+
+  console.log(sCategories);
+
+  if (die === 6) {
+    inSeedsArray.length && outSeedsArray.length
+      ? makeChoices(player, count, lowNumDie, highNumDie, die)
+      : inSeedsArray.length
+      ? newSeedOut(player, count, lowNumDie, highNumDie)
+      : outSeedsArray.length
+      ? moveSeeds(player, count, lowNumDie, highNumDie, die)
+      : socket.emit("nextPlayer", gameId);
+  } else {
+    outSeedsArray.length
+      ? moveSeeds(player, count, lowNumDie, highNumDie, die)
+      : socket.emit("nextPlayer", gameId);
+  }
+}
+
+function newSeedOut(count, lowNumDie, highNumDie) {
+  if (player.colorInfo.length > 1) {
+    if (
+      player.colorInfo[0].seedRelativePosition.some((p) => p === 0) &&
+      player.colorInfo[1].seedRelativePosition.some((p) => p === 0)
+    ) {
+      inputDiv = document.createElement("div");
+      inputDiv.classList.add("input_div", "select", "is-rounded", "is-normal");
+      selectOption = `<select name="" id=""><option>Select an Option</option>`;
+      for (c of player.colorInfo) {
+        selectOption += `<option value="${c.color}">${c.color}</option>`;
+      }
+      selectOption += ` </select >`;
+      inputDiv.innerHTML = selectOption;
+      selectDiv.append(inputDiv);
+      inputDiv.addEventListener(
+        "input",
+        function () {
+          inputDiv.remove();
+          for (c of player.colorInfo) {
+            if (c.color === this.children[0].value) {
+              seedIdx = c.seedRelativePosition.indexOf(0);
+              document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
+              c.seedRelativePosition[seedIdx] = 1;
+              newLudoSeed = document.createElement("div");
+              newLudoSeed.classList.add(
+                `${c.color}`,
+                `${c.color}_${seedIdx + 1}`,
+                `${player.player}`
+              );
+              document
+                .querySelector(
+                  `.square_${c.runPathWay().seedsRealPosition[seedIdx]}`
+                )
+                .append(newLudoSeed);
+            }
+          }
+          count += 1;
+          decisionFilter(player, count, lowNumDie, highNumDie);
+        },
+        { once: true }
+      );
+    } else {
+      if (player.colorInfo[0].seedRelativePosition.some((p) => p === 0)) {
+        c = player.colorInfo[0];
+      } else {
+        c = player.colorInfo[1];
+      }
+      seedIdx = c.seedRelativePosition.indexOf(0);
+      document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
+      c.seedRelativePosition[seedIdx] = 1;
+      newLudoSeed = document.createElement("div");
+      newLudoSeed.classList.add(
+        `${c.color}`,
+        `${c.color}_${seedIdx + 1}`,
+        `${player.player}`
+      );
+      document
+        .querySelector(`.square_${c.runPathWay().seedsRealPosition[seedIdx]}`)
+        .append(newLudoSeed);
+      count += 1;
+      decisionFilter(player, count, lowNumDie, highNumDie);
+    }
+  } else {
+    c = player.colorInfo[0];
+    seedIdx = c.seedRelativePosition.indexOf(0);
+    document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
+    c.seedRelativePosition[seedIdx] = 1;
+    newLudoSeed = document.createElement("div");
+    newLudoSeed.classList.add(
+      `${c.color}`,
+      `${c.color}_${seedIdx + 1}`,
+      `${player.player}`
+    );
+    document
+      .querySelector(`.square_${c.runPathWay().seedsRealPosition[seedIdx]}`)
+      .append(newLudoSeed);
+    count += 1;
+    decisionFilter(player, count, lowNumDie, highNumDie);
+  }
+}
+function moveSeeds(player, count, lowNumDie, highNumDie, die) {
+  if (count > 1) return decisionFilter(player, count, lowNumDie, highNumDie);
+  playerOutSeedArray = document.querySelectorAll(`.${player.player}`);
+  seedRelativePositionArray = [];
+  for (let i = 0; i < playerOutSeedArray.length; i++) {
+    seedRelativePositionArray = [
+      ...seedRelativePositionArray,
+      [
+        playerOutSeedArray[i].classList[0],
+        parseInt(playerOutSeedArray[i].classList[1].slice(-1)),
+        playerOutSeedArray[i].parentElement,
+        ludoBoxes[playerOutSeedArray[i].classList[0]].seedRelativePosition[
+          parseInt(playerOutSeedArray[i].classList[1].slice(-1)) - 1
+        ],
+      ],
+    ];
+  }
+  movebleSeedArray = seedRelativePositionArray.filter((p) => p[3] + die < 58);
+  if (movebleSeedArray.length) {
+    for (let i = 0; i < movebleSeedArray.length; i++) {
+      document
+        .querySelector(`.${movebleSeedArray[i][0]}_${movebleSeedArray[i][1]}`)
+        .addEventListener(
+          "click",
+          () => {
+            p = movebleSeedArray[i];
+            ludoBoxes[p[0]].seedRelativePosition[p[1] - 1] += die;
+            for (let j = 0; j < movebleSeedArray.length; j++) {
+              document
+                .querySelector(
+                  `.${movebleSeedArray[j][0]}_${movebleSeedArray[j][1]}`
+                )
+                .remove();
+              newLudoSeed = document.createElement("div");
+              newLudoSeed.classList.add(
+                `${movebleSeedArray[j][0]}`,
+                `${movebleSeedArray[j][0]}_${movebleSeedArray[j][1]}`,
+                `${player.player}`
+              );
+              if (
+                p[0] === movebleSeedArray[j][0] &&
+                p[1] === movebleSeedArray[j][1]
+              ) {
+                document
+                  .querySelector(
+                    `.square_${
+                      ludoBoxes[p[0]].runPathWay().seedsRealPosition[p[1] - 1]
+                    }`
+                  )
+                  .append(newLudoSeed);
+              } else {
+                movebleSeedArray[j][2].append(newLudoSeed);
+              }
+            }
+            count += 1;
+            decisionFilter(player, count, lowNumDie, highNumDie);
+          },
+          { once: true }
+        );
+    }
+  } else {
+    count += 1;
+    decisionFilter(player, count, lowNumDie, highNumDie);
+  }
+}
+function makeChoices(player, count, lowNumDie, highNumDie, die) {
+  if (count > 1) return decisionFilter(player, count, lowNumDie, highNumDie);
+
+  inputDiv = document.createElement("div");
+  inputDiv.classList.add("input_div", "select", "is-rounded", "is-normal");
+  inputDiv.innerHTML = `<select name="" id="">
+                            <option>Select an Option</option>
+                            <option value="newSeedOut">Bring Out A Seed</option>
+                            <option value="moveSeeds">Continue Moving Existing Seed</option>
+                          </select>`;
+  selectDiv.append(inputDiv);
+  inputDiv.addEventListener("input", () => {
+    if (this.children[0].value === "newSeedOut") {
+      inputDiv.remove();
+      newSeedOut(player, count, lowNumDie, highNumDie);
+    } else {
+      inputDiv.remove();
+      moveSeeds(player, count, lowNumDie, highNumDie, die);
+    }
+  });
 }

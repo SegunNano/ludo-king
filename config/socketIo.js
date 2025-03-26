@@ -4,6 +4,7 @@ import sessionConfig from "./sessionConfig.js";
 import Game from "../models/gameModel.js";
 // import User from "../models/userModel.js";
 import { shuffleArray } from "../utils/utils.js";
+const gameCache = new Map();
 
 const sessionMiddleware = session(sessionConfig);
 
@@ -30,7 +31,7 @@ export default function setupSocket(server) {
             arrayFilters: [{ "elem.player": playerId }],
             new: true,
           }
-        );
+        ).populate("playersList.player", "username image");
 
         if (!game) {
           socket.emit("error", "Game not found.");
@@ -61,8 +62,23 @@ export default function setupSocket(server) {
         Math.floor(Math.random() * 6 + 1),
         Math.floor(Math.random() * 6 + 1),
       ];
-      console.log(dieOutcome);
+      gameCache.set(gameId, { dieOutcome });
+
       io.to(gameId).emit("dieOutcome", dieOutcome);
+    });
+    socket.on("nextPlayer", async (gameId) => {
+      const game = await Game.findById(gameId).populate(
+        "playersList.player",
+        "username image"
+      );
+
+      if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
+        console.log(game.currentPlayer);
+        game.currentPlayer = (game.currentPlayer + 1) % game.playerNo;
+        await game.save();
+      }
+
+      io.to(gameId).emit("gameUpdate", game);
     });
 
     socket.on("disconnect", async () => {
@@ -71,7 +87,7 @@ export default function setupSocket(server) {
           { "playersList.socketId": socket.id },
           { $set: { "playersList.$.socketId": null } }, // Remove socket ID
           { new: true }
-        );
+        ).populate("playersList.player", "username image");
 
         if (game) {
           io.to(game._id.toString()).emit("gameUpdate", game);

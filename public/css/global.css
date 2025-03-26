@@ -22,13 +22,13 @@
   flex-wrap: wrap;
 }
 
-.playGround div {
+.playGround > div {
   aspect-ratio: 1;
   width: 6.66666666666666666666666666666666666666666666666666666666666666666666667%;
   margin: 0;
 }
 
-.playGround div div {
+.ludo-seed {
   width: 35%;
   aspect-ratio: 1;
   border-radius: 50%;
