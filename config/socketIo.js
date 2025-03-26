@@ -62,23 +62,71 @@ export default function setupSocket(server) {
         Math.floor(Math.random() * 6 + 1),
         Math.floor(Math.random() * 6 + 1),
       ];
-      gameCache.set(gameId, { dieOutcome });
+      gameCache.set(gameId, { dieOutcome, count: 0 });
 
       io.to(gameId).emit("dieOutcome", dieOutcome);
     });
-    socket.on("nextPlayer", async (gameId) => {
-      const game = await Game.findById(gameId).populate(
-        "playersList.player",
-        "username image"
-      );
+    socket.on(
+      "nextPlayer",
+      async ({ gameId, playerSeedsArray, opponentSeedsArray }) => {
+        const game = await Game.findById(gameId).populate(
+          "playersList.player",
+          "username image"
+        );
 
-      if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
-        console.log(game.currentPlayer);
-        game.currentPlayer = (game.currentPlayer + 1) % game.playerNo;
+        if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
+          game.currentPlayer = (game.currentPlayer + 1) % game.playerNo;
+        }
+        function updateSeedPositions(game, seedsToUpdate, newValue) {
+          let updated = false;
+          seedsToUpdate.forEach((seed) => {
+            if (game.seedPositions.hasOwnProperty(seed)) {
+              // Ensure the seed exists
+              game.seedPositions[seed] = newValue;
+              updated = true;
+            }
+          });
+          if (updated) {
+            game.markModified("seedPositions");
+          }
+        }
+        if (playerSeedsArray?.length) {
+          updateSeedPositions(game, playerSeedsArray, 57);
+        }
+        if (opponentSeedsArray?.length) {
+          updateSeedPositions(game, opponentSeedsArray, 0);
+        }
+
         await game.save();
-      }
 
-      io.to(gameId).emit("gameUpdate", game);
+        io.to(gameId).emit("gameUpdate", game);
+      }
+    );
+
+    socket.on("gameMoves", async (info) => {
+      const { gameId, gameMoves, seed, die } = info;
+
+      const gameData = gameCache.get(gameId);
+      const game =
+        gameMoves === "newSeedOut"
+          ? await Game.findByIdAndUpdate(
+              gameId,
+              { $set: { [`seedPositions.${seed}`]: 1 } },
+              { new: true }
+            ).populate("playersList.player", "username image")
+          : await Game.findByIdAndUpdate(
+              gameId,
+              { $inc: { [`seedPositions.${seed}`]: die } },
+              { new: true }
+            ).populate("playersList.player", "username image");
+      gameData.count += 1;
+      const { count, dieOutcome } = gameData;
+      io.to(gameId).emit("gameUpdate", {
+        ...game.toObject(),
+        count,
+        dieOutcome,
+      });
+      gameCache.set(gameId, gameData);
     });
 
     socket.on("disconnect", async () => {

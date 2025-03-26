@@ -22,7 +22,7 @@
   flex-wrap: wrap;
 }
 
-.playGround > div {
+.ludo-box {
   aspect-ratio: 1;
   width: 6.66666666666666666666666666666666666666666666666666666666666666666666667%;
   margin: 0;
@@ -34,6 +34,8 @@
   border-radius: 50%;
   border: 0.2px solid rgba(0, 0, 0, 0.267);
   box-shadow: 3px 2px rgba(0, 0, 0, 0.466);
+  display: inline-block;
+  margin: 1px;
 }
 
 .red_1,

@@ -39,6 +39,7 @@ const ludoSections = [
 
 const buttonDiv = document.querySelector(".buttons");
 const gameInfo = document.querySelector(".game-info");
+const gameInfoPara = document.querySelector(".game-info");
 gameId && socket.emit("joinRoom", gameId);
 
 socket.on("connect", () => {
@@ -51,8 +52,8 @@ socket.on("gameUpdate", (game) => {
   const rollDieButton = document.querySelector(".roll-die-button");
   rollDieButton && rollDieButton.remove();
 
-  updateGame(game);
   console.log(game);
+  game.count ? decisionFilter(game.count, game.dieOutcome) : updateGame(game);
 });
 socket.on("dieOutcome", (dieOutcome) => {
   rollDice(dieOutcome);
@@ -112,8 +113,6 @@ function playGame() {
 function rollDice(dieOutcome) {
   const dice1 = document.getElementById("dice-1");
   const dice2 = document.getElementById("dice-2");
-  const lowNumDie = Math.min(...dieOutcome);
-  const highNumDie = Math.max(...dieOutcome);
   let count = 0;
   dice1.classList.add("rolling");
   dice2.classList.add("rolling");
@@ -131,7 +130,7 @@ function rollDice(dieOutcome) {
       dice1.classList.remove("rolling");
       dice2.classList.remove("rolling");
 
-      decisionFilter(count, lowNumDie, highNumDie);
+      decisionFilter(count, dieOutcome);
     }
   }, 100);
 }
@@ -143,7 +142,6 @@ function getDiceFace(value) {
 function updateGame(game) {
   const { seedPositions, playersList, currentPlayer, playerNo } = game;
   updateSeedPositions(seedPositions);
-  const gameInfoPara = document.querySelector(".game-info");
   if (playerNo !== playersList.length) {
     gameInfoPara.textContent = "Players not completed";
     return;
@@ -166,17 +164,18 @@ function updateGame(game) {
   // console.log({ gameIsPaused: false, msg: "Players complete in room" });
 }
 
-function decisionFilter(count, lowNumDie, highNumDie) {
+function decisionFilter(count, dieOutcome) {
+  const lowNumDie = Math.min(...dieOutcome);
+  const highNumDie = Math.max(...dieOutcome);
   const { playersList, seedPositions, currentPlayer } = gameObj;
-
+  updateSeedPositions(seedPositions);
   if (playersList[currentPlayer]?.socketId !== socket.id) {
-    const gameInfoPara = document.querySelector(".game-info");
     gameInfoPara.textContent = `${playersList[currentPlayer].player.username} is playing.`;
     return;
   }
   const player = playersList.find((player) => player.socketId === socket.id);
   console.log({ count });
-  if (count > 1) return socket.emit("nextPlayer", gameId);
+  if (count > 1) return nextPlayer();
   let die = count === 0 ? highNumDie : lowNumDie;
 
   // Flatten all seed positions into an array
@@ -187,7 +186,7 @@ function decisionFilter(count, lowNumDie, highNumDie) {
   // Separate `inSeedArray` and `outSeedArray`
   const inSeedsArray = seedValues.filter((pos) => seedPositions[pos] === 0);
   const movableSeedsArray = seedValues.filter(
-    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] < 57
+    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] + die <= 57
   );
   const outSeedsArray = seedValues.filter(
     (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 58
@@ -195,187 +194,148 @@ function decisionFilter(count, lowNumDie, highNumDie) {
 
   const sCategories = { inSeedsArray, outSeedsArray, movableSeedsArray };
 
-  console.log(sCategories);
+  console.log({ sCategories, die, dieOutcome });
 
   if (die === 6) {
-    inSeedsArray.length && outSeedsArray.length
-      ? makeChoices(player, count, lowNumDie, highNumDie, die)
+    inSeedsArray.length && movableSeedsArray.length
+      ? makeChoices(inSeedsArray, movableSeedsArray)
       : inSeedsArray.length
-      ? newSeedOut(player, count, lowNumDie, highNumDie)
-      : outSeedsArray.length
-      ? moveSeeds(player, count, lowNumDie, highNumDie, die)
-      : socket.emit("nextPlayer", gameId);
+      ? newSeedOut(inSeedsArray)
+      : movable.length
+      ? moveSeeds(movableSeedsArray, die)
+      : nextPlayer();
   } else {
-    outSeedsArray.length
-      ? moveSeeds(player, count, lowNumDie, highNumDie, die)
-      : socket.emit("nextPlayer", gameId);
+    movableSeedsArray.length ? moveSeeds(movableSeedsArray, die) : nextPlayer();
   }
 }
 
-function newSeedOut(count, lowNumDie, highNumDie) {
-  if (player.colorInfo.length > 1) {
-    if (
-      player.colorInfo[0].seedRelativePosition.some((p) => p === 0) &&
-      player.colorInfo[1].seedRelativePosition.some((p) => p === 0)
-    ) {
-      inputDiv = document.createElement("div");
-      inputDiv.classList.add("input_div", "select", "is-rounded", "is-normal");
-      selectOption = `<select name="" id=""><option>Select an Option</option>`;
-      for (c of player.colorInfo) {
-        selectOption += `<option value="${c.color}">${c.color}</option>`;
-      }
-      selectOption += ` </select >`;
-      inputDiv.innerHTML = selectOption;
-      selectDiv.append(inputDiv);
-      inputDiv.addEventListener(
-        "input",
-        function () {
-          inputDiv.remove();
-          for (c of player.colorInfo) {
-            if (c.color === this.children[0].value) {
-              seedIdx = c.seedRelativePosition.indexOf(0);
-              document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
-              c.seedRelativePosition[seedIdx] = 1;
-              newLudoSeed = document.createElement("div");
-              newLudoSeed.classList.add(
-                `${c.color}`,
-                `${c.color}_${seedIdx + 1}`,
-                `${player.player}`
-              );
-              document
-                .querySelector(
-                  `.square_${c.runPathWay().seedsRealPosition[seedIdx]}`
-                )
-                .append(newLudoSeed);
-            }
-          }
-          count += 1;
-          decisionFilter(player, count, lowNumDie, highNumDie);
-        },
-        { once: true }
-      );
-    } else {
-      if (player.colorInfo[0].seedRelativePosition.some((p) => p === 0)) {
-        c = player.colorInfo[0];
-      } else {
-        c = player.colorInfo[1];
-      }
-      seedIdx = c.seedRelativePosition.indexOf(0);
-      document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
-      c.seedRelativePosition[seedIdx] = 1;
-      newLudoSeed = document.createElement("div");
-      newLudoSeed.classList.add(
-        `${c.color}`,
-        `${c.color}_${seedIdx + 1}`,
-        `${player.player}`
-      );
-      document
-        .querySelector(`.square_${c.runPathWay().seedsRealPosition[seedIdx]}`)
-        .append(newLudoSeed);
-      count += 1;
-      decisionFilter(player, count, lowNumDie, highNumDie);
-    }
-  } else {
-    c = player.colorInfo[0];
-    seedIdx = c.seedRelativePosition.indexOf(0);
-    document.querySelector(`.${c.color}_${seedIdx + 1}`).remove();
-    c.seedRelativePosition[seedIdx] = 1;
-    newLudoSeed = document.createElement("div");
-    newLudoSeed.classList.add(
-      `${c.color}`,
-      `${c.color}_${seedIdx + 1}`,
-      `${player.player}`
-    );
-    document
-      .querySelector(`.square_${c.runPathWay().seedsRealPosition[seedIdx]}`)
-      .append(newLudoSeed);
-    count += 1;
-    decisionFilter(player, count, lowNumDie, highNumDie);
-  }
-}
-function moveSeeds(player, count, lowNumDie, highNumDie, die) {
-  if (count > 1) return decisionFilter(player, count, lowNumDie, highNumDie);
-  playerOutSeedArray = document.querySelectorAll(`.${player.player}`);
-  seedRelativePositionArray = [];
-  for (let i = 0; i < playerOutSeedArray.length; i++) {
-    seedRelativePositionArray = [
-      ...seedRelativePositionArray,
-      [
-        playerOutSeedArray[i].classList[0],
-        parseInt(playerOutSeedArray[i].classList[1].slice(-1)),
-        playerOutSeedArray[i].parentElement,
-        ludoBoxes[playerOutSeedArray[i].classList[0]].seedRelativePosition[
-          parseInt(playerOutSeedArray[i].classList[1].slice(-1)) - 1
-        ],
-      ],
-    ];
-  }
-  movebleSeedArray = seedRelativePositionArray.filter((p) => p[3] + die < 58);
-  if (movebleSeedArray.length) {
-    for (let i = 0; i < movebleSeedArray.length; i++) {
-      document
-        .querySelector(`.${movebleSeedArray[i][0]}_${movebleSeedArray[i][1]}`)
-        .addEventListener(
-          "click",
-          () => {
-            p = movebleSeedArray[i];
-            ludoBoxes[p[0]].seedRelativePosition[p[1] - 1] += die;
-            for (let j = 0; j < movebleSeedArray.length; j++) {
-              document
-                .querySelector(
-                  `.${movebleSeedArray[j][0]}_${movebleSeedArray[j][1]}`
-                )
-                .remove();
-              newLudoSeed = document.createElement("div");
-              newLudoSeed.classList.add(
-                `${movebleSeedArray[j][0]}`,
-                `${movebleSeedArray[j][0]}_${movebleSeedArray[j][1]}`,
-                `${player.player}`
-              );
-              if (
-                p[0] === movebleSeedArray[j][0] &&
-                p[1] === movebleSeedArray[j][1]
-              ) {
-                document
-                  .querySelector(
-                    `.square_${
-                      ludoBoxes[p[0]].runPathWay().seedsRealPosition[p[1] - 1]
-                    }`
-                  )
-                  .append(newLudoSeed);
-              } else {
-                movebleSeedArray[j][2].append(newLudoSeed);
-              }
-            }
-            count += 1;
-            decisionFilter(player, count, lowNumDie, highNumDie);
-          },
-          { once: true }
-        );
-    }
-  } else {
-    count += 1;
-    decisionFilter(player, count, lowNumDie, highNumDie);
-  }
-}
-function makeChoices(player, count, lowNumDie, highNumDie, die) {
-  if (count > 1) return decisionFilter(player, count, lowNumDie, highNumDie);
+function nextPlayer() {
+  const ludoBoxes = document.querySelectorAll(".ludo-box");
+  const currentPlayerSeedColors =
+    gameObj.playersList[gameObj.currentPlayer].seedColor;
 
-  inputDiv = document.createElement("div");
-  inputDiv.classList.add("input_div", "select", "is-rounded", "is-normal");
-  inputDiv.innerHTML = `<select name="" id="">
-                            <option>Select an Option</option>
-                            <option value="newSeedOut">Bring Out A Seed</option>
-                            <option value="moveSeeds">Continue Moving Existing Seed</option>
-                          </select>`;
-  selectDiv.append(inputDiv);
-  inputDiv.addEventListener("input", () => {
-    if (this.children[0].value === "newSeedOut") {
-      inputDiv.remove();
-      newSeedOut(player, count, lowNumDie, highNumDie);
-    } else {
-      inputDiv.remove();
-      moveSeeds(player, count, lowNumDie, highNumDie, die);
+  let playerSeedsArray = [];
+  let opponentSeedsArray = [];
+
+  const multiChildBoxes = Array.from(ludoBoxes) // Convert NodeList to array
+    .filter((box) => box.children.length > 1) // Keep boxes with multiple children
+    .map((box) => {
+      const seeds = Array.from(box.children).map((child) => child.classList[1]); // Extract seed class names
+
+      // Separate player and opponent seeds
+      const playerSeeds = seeds.filter((seed) =>
+        currentPlayerSeedColors.some((color) => seed.startsWith(color))
+      );
+      const opponentSeeds = seeds.filter(
+        (seed) =>
+          !currentPlayerSeedColors.some((color) => seed.startsWith(color))
+      );
+
+      // If the box contains both player and opponent seeds, return the separated lists
+      if (playerSeeds.length > 0 && opponentSeeds.length > 0) {
+        playerSeedsArray.push(playerSeeds[0]); // Take first player seed
+        opponentSeedsArray.push(opponentSeeds[0]); // Take first opponent seed
+        return seeds;
+      }
+      return null;
+    })
+    .filter((box) => box !== null); // Remove `null` values
+
+  console.log("Filtered Multi-Child Boxes:", multiChildBoxes);
+  console.log("Player Seeds Array:", playerSeedsArray);
+  console.log("Opponent Seeds Array:", opponentSeedsArray);
+
+  socket.emit("nextPlayer", { gameId, playerSeedsArray, opponentSeedsArray });
+}
+
+function newSeedOut(inSeedsArray) {
+  if (new Set(inSeedsArray.map((seed) => seed.split("_")[0])) === 1) {
+    socket.emit("gameMoves", {
+      gameId,
+      gameMoves: "newSeedOut",
+      seed: inSeedsArray[0],
+      die: 6,
+    });
+    return;
+  }
+  gameInfoPara.textContent = "Click on the seed you want out.";
+
+  inSeedsArray.forEach((seed) => {
+    const seedElement = document.querySelector(`.${seed}`); // Select the seed element
+
+    if (seedElement) {
+      seedElement.addEventListener("click", () => {
+        const color = seed.split("_")[0]; // Extracts color (e.g., "red" from "red_1")
+        console.log(`You selected ${seed} from ${color} house`);
+        socket.emit("gameMoves", {
+          gameId,
+          gameMoves: "newSeedOut",
+          seed,
+          die: 6,
+        });
+      });
+    }
+  });
+}
+function moveSeeds(movableSeedsArray, die) {
+  if (movableSeedsArray.length === 1) {
+    socket.emit("gameMoves", {
+      gameId,
+      gameMoves: "moveSeeds",
+      seed: movableSeedsArray[0],
+      die,
+    });
+    return;
+  }
+  gameInfoPara.textContent = "Click on the seed you want to move.";
+  movableSeedsArray.forEach((seed) => {
+    const seedElement = document.querySelector(`.${seed}`); // Select the seed element
+
+    if (seedElement) {
+      seedElement.addEventListener("click", () => {
+        const color = seed.split("_")[0]; // Extracts color (e.g., "red" from "red_1")
+        console.log(`You selected ${seed} from ${color} house`);
+        socket.emit("gameMoves", {
+          gameId,
+          gameMoves: "movableSeedsOut",
+          seed,
+          die,
+        });
+      });
+    }
+  });
+}
+function makeChoices(inSeedsArray, movableSeedsArray) {
+  gameInfoPara.textContent = "Click on the seed.";
+  inSeedsArray.forEach((seed) => {
+    const seedElement = document.querySelector(`.${seed}`); // Select the seed element
+    if (seedElement) {
+      seedElement.addEventListener("click", () => {
+        const color = seed.split("_")[0]; // Extracts color (e.g., "red" from "red_1")
+        console.log(`You selected ${seed} from ${color} house`);
+        socket.emit("gameMoves", {
+          gameId,
+          gameMoves: "newSeedOut",
+          seed,
+          die: 6,
+        });
+      });
+    }
+  });
+  movableSeedsArray.forEach((seed) => {
+    const seedElement = document.querySelector(`.${seed}`); // Select the seed element
+
+    if (seedElement) {
+      seedElement.addEventListener("click", () => {
+        const color = seed.split("_")[0]; // Extracts color (e.g., "red" from "red_1")
+        console.log(`You selected ${seed} from ${color} house`);
+        socket.emit("gameMoves", {
+          gameId,
+          gameMoves: "movableSeedsOut",
+          seed,
+          die: 6,
+        });
+      });
     }
   });
 }

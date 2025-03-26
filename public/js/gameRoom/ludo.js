@@ -5,7 +5,7 @@ const boardSize = 225; // Ludo board has 225 squares
 
 for (let i = 1; i <= boardSize; i++) {
   const ludoBox = document.createElement("div");
-  ludoBox.classList.add(`square_${i}`); // Add square class
+  ludoBox.classList.add(`square_${i}`, "ludo-box"); // Add square class
   ludoBoard.appendChild(ludoBox);
 }
 
