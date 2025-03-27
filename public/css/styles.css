@@ -578,6 +578,30 @@ video {
   top: 13rem;
 }
 
+.bottom-\[50\%\] {
+  bottom: 50%;
+}
+
+.bottom-\[40\%\] {
+  bottom: 40%;
+}
+
+.bottom-\[43\%\] {
+  bottom: 43%;
+}
+
+.left-\[40\%\] {
+  left: 40%;
+}
+
+.right-\[40\%\] {
+  right: 40%;
+}
+
+.top-\[40\%\] {
+  top: 40%;
+}
+
 .z-50 {
   z-index: 50;
 }

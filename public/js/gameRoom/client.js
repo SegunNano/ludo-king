@@ -201,7 +201,7 @@ function decisionFilter(count, dieOutcome) {
       ? makeChoices(inSeedsArray, movableSeedsArray)
       : inSeedsArray.length
       ? newSeedOut(inSeedsArray)
-      : movable.length
+      : movableSeedsArray.length
       ? moveSeeds(movableSeedsArray, die)
       : nextPlayer();
   } else {

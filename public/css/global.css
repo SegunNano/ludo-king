@@ -10,6 +10,35 @@
   background-size: cover;
   background-repeat: no-repeat;
 }
+.dice {
+  transition: transform 0.2s ease-in-out;
+}
+
+.rolling {
+  animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(10deg);
+  }
+
+  50% {
+    transform: rotate(0deg);
+  }
+
+  75% {
+    transform: rotate(-10deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
 
 .playGround {
   /* width: 100%; */
@@ -34,8 +63,6 @@
   border-radius: 50%;
   border: 0.2px solid rgba(0, 0, 0, 0.267);
   box-shadow: 3px 2px rgba(0, 0, 0, 0.466);
-  display: inline-block;
-  margin: 1px;
 }
 
 .red_1,
