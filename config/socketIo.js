@@ -59,8 +59,9 @@ export default function setupSocket(server) {
 
     socket.on("rollDie", (gameId) => {
       const dieOutcome = [
-        Math.floor(Math.random() * 6 + 1),
-        Math.floor(Math.random() * 6 + 1),
+        // Math.floor(Math.random() * 6 + 1),
+        // Math.floor(Math.random() * 6 + 1),
+        6, 5,
       ];
       gameCache.set(gameId, { dieOutcome, count: 0 });
 
@@ -73,23 +74,29 @@ export default function setupSocket(server) {
           "playersList.player",
           "username image"
         );
-
+        const { playersList, playerNo, currentPlayer, seedPositions } = game;
         if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
-          game.currentPlayer = (game.currentPlayer + 1) % game.playerNo;
+          game.currentPlayer = (currentPlayer + 1) % playerNo;
         }
-        function updateSeedPositions(game, seedsToUpdate, newValue) {
-          let updated = false;
-          seedsToUpdate.forEach((seed) => {
-            if (game.seedPositions.hasOwnProperty(seed)) {
-              // Ensure the seed exists
-              game.seedPositions[seed] = newValue;
-              updated = true;
-            }
-          });
-          if (updated) {
-            game.markModified("seedPositions");
-          }
+
+        let nextPlayer = playersList[game.currentPlayer];
+        let seedValues = nextPlayer.seedColor.flatMap(
+          (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
+        );
+        let outSeedsArray = seedValues.filter(
+          (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
+        );
+        while (outSeedsArray.length === 16 / playerNo) {
+          game.currentPlayer = (game.currentPlayer + 1) % playerNo;
+          nextPlayer = playersList.find(() => playersList[game.currentPlayer]);
+          seedValues = nextPlayer.seedColor.flatMap(
+            (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
+          );
+          outSeedsArray = seedValues.filter(
+            (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
+          );
         }
+
         if (playerSeedsArray?.length) {
           updateSeedPositions(game, playerSeedsArray, 57);
         }
@@ -114,6 +121,8 @@ export default function setupSocket(server) {
               { $set: { [`seedPositions.${seed}`]: 1 } },
               { new: true }
             ).populate("playersList.player", "username image")
+          : gameMoves === "checkNextSeed"
+          ? await Game.findById(gameId)
           : await Game.findByIdAndUpdate(
               gameId,
               { $inc: { [`seedPositions.${seed}`]: die } },
@@ -147,4 +156,18 @@ export default function setupSocket(server) {
   });
 
   return io;
+}
+
+function updateSeedPositions(game, seedsToUpdate, newValue) {
+  let updated = false;
+  seedsToUpdate.forEach((seed) => {
+    if (game.seedPositions.hasOwnProperty(seed)) {
+      // Ensure the seed exists
+      game.seedPositions[seed] = newValue;
+      updated = true;
+    }
+  });
+  if (updated) {
+    game.markModified("seedPositions");
+  }
 }

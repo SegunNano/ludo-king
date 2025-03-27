@@ -6,57 +6,52 @@
             <div
                 class="flex flex-col  max-w-xl bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70">
                 <div
-                    class="bg-gray-100 border-b border-gray-200 rounded-t-xl py-3 px-4 md:py-4 md:px-5 dark:bg-neutral-900 dark:border-neutral-700">
-                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">
-                        Ludo King
-                    </h3>
+                    class="bg-gray-100 border-b border-gray-200 rounded-t-xl px-4 md:py-4 md:px-5 dark:bg-neutral-900 dark:border-neutral-700">
+                    <div class="player-info flex justify-between items-center"> </div>
                 </div>
-                <div class="p-4 md:p-5 w-full">
-                    <div class="p-3 rounded-sm bg-amber-950 relative">
-                        <svg id='dice-1' xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                            fill="white" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                            stroke-linejoin="round" class="size-10 absolute z-50 dice bottom-[40%] left-[40%]">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                            <path d="M16 8h.01" />
-                            <path d="M16 12h.01" />
-                            <path d="M16 16h.01" />
-                            <path d="M8 8h.01" />
-                            <path d="M8 12h.01" />
-                            <path d="M8 16h.01" />
-                        </svg>
-                        <svg id='dice-2' xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                            fill="white" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                            stroke-linejoin="round" class="size-10 absolute z-50 dice top-[40%] right-[40%]">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                            <path d="M16 8h.01" />
-                            <path d="M16 12h.01" />
-                            <path d="M16 16h.01" />
-                            <path d="M8 8h.01" />
-                            <path d="M8 12h.01" />
-                            <path d="M8 16h.01" />
-                        </svg>
-                        <div class="playGround rounded-sm"></div>
-                    </div>
+
+                <div class="p-3 rounded-sm bg-amber-950 relative w-full">
+                    <svg id='dice-1' xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="white" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" class="size-10 absolute z-50 dice bottom-[40%] left-[40%]">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                        <path d="M16 8h.01" />
+                        <path d="M16 12h.01" />
+                        <path d="M16 16h.01" />
+                        <path d="M8 8h.01" />
+                        <path d="M8 12h.01" />
+                        <path d="M8 16h.01" />
+                    </svg>
+                    <svg id='dice-2' xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="white" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" class="size-10 absolute z-50 dice top-[40%] right-[40%]">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                        <path d="M16 8h.01" />
+                        <path d="M16 12h.01" />
+                        <path d="M16 16h.01" />
+                        <path d="M8 8h.01" />
+                        <path d="M8 12h.01" />
+                        <path d="M8 16h.01" />
+                    </svg>
+                    <div class="playGround rounded-sm"></div>
                 </div>
+
                 <div
-                    class="bg-gray-100 border-t border-gray-200 rounded-b-xl py-3 px-4 md:py-4 md:px-5 dark:bg-neutral-900 dark:border-neutral-700">
-                    <div class="buttons"></div>
-
-                    <p class="mt-2 text-gray-500 game-info dark:text-neutral-400"> </p>
-
-                    <footer class="card-content">
-                        <div class="playerProgress"></div>
-                    </footer>
+                    class="bg-gray-100 border-t border-gray-200 rounded-b-xl px-4 md:py-4 md:px-5 dark:bg-neutral-900 dark:border-neutral-700">
+                    <div class="player-info flex justify-between items-center mb-2"> </div>
+                    <div class="w-full border-t-4 border-[#cecece] py-4">
+                        <p class="mt-2 text-gray-500 game-info dark:text-neutral-400"> </p>
+                        <div class="buttons"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
 
 
 
 
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/gameRoom/ludo.js"></script>
-    <script src="/js/gameRoom/client.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/js/gameRoom/ludo.js"></script>
+        <script src="/js/gameRoom/client.js"></script>

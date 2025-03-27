@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .player-info .out-seed {
+    @apply size-5 shrink-0 rounded-full border border-gray-300 mr-0.5;
+  }
+  .player-info .avatar {
+    @apply inline-block shrink-0 size-14 rounded-full mr-2;
+  }
+  .player-info .player-block {
+    @apply shrink-0 block;
+  }
+  .player-info .username {
+    @apply font-semibold text-gray-800 dark:text-white;
+  }
+}

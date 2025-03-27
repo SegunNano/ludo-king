@@ -38,8 +38,13 @@ const ludoSections = [
 ];
 
 const buttonDiv = document.querySelector(".buttons");
-const gameInfo = document.querySelector(".game-info");
 const gameInfoPara = document.querySelector(".game-info");
+const playersInfo = document.querySelectorAll(".player-info");
+const redLastBox = document.querySelector(
+  `.square_${ludoSections[1].finishing[6]}`
+);
+console.log({ playersInfo });
+
 gameId && socket.emit("joinRoom", gameId);
 
 socket.on("connect", () => {
@@ -52,8 +57,9 @@ socket.on("gameUpdate", (game) => {
   const rollDieButton = document.querySelector(".roll-die-button");
   rollDieButton && rollDieButton.remove();
 
-  console.log(game);
-  game.count ? decisionFilter(game.count, game.dieOutcome) : updateGame(game);
+  updateGame();
+
+  game.count ? decisionFilter(game.count, game.dieOutcome) : renderGame();
 });
 socket.on("dieOutcome", (dieOutcome) => {
   rollDice(dieOutcome);
@@ -139,9 +145,8 @@ function getDiceFace(value) {
   return dieFaceArr[value - 1];
 }
 
-function updateGame(game) {
-  const { seedPositions, playersList, currentPlayer, playerNo } = game;
-  updateSeedPositions(seedPositions);
+function renderGame() {
+  const { seedPositions, playersList, currentPlayer, playerNo } = gameObj;
   if (playerNo !== playersList.length) {
     gameInfoPara.textContent = "Players not completed";
     return;
@@ -161,23 +166,21 @@ function updateGame(game) {
     playerButton.addEventListener("click", playGame);
   }
 
-  // console.log({ gameIsPaused: false, msg: "Players complete in room" });
+  console.log({ gameIsPaused: false, msg: "Players complete in room" });
 }
 
 function decisionFilter(count, dieOutcome) {
+  console.log({ count, dieOutcome });
   const lowNumDie = Math.min(...dieOutcome);
   const highNumDie = Math.max(...dieOutcome);
   const { playersList, seedPositions, currentPlayer } = gameObj;
-  updateSeedPositions(seedPositions);
-  if (playersList[currentPlayer]?.socketId !== socket.id) {
-    gameInfoPara.textContent = `${playersList[currentPlayer].player.username} is playing.`;
-    return;
-  }
+  if (playersList[currentPlayer]?.socketId !== socket.id)
+    return (gameInfoPara.textContent = `${playersList[currentPlayer].player.username} is playing.`);
+
   const player = playersList.find((player) => player.socketId === socket.id);
-  console.log({ count });
   if (count > 1) return nextPlayer();
   let die = count === 0 ? highNumDie : lowNumDie;
-
+  console.log(die);
   // Flatten all seed positions into an array
   const seedValues = player.seedColor.flatMap(
     (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
@@ -189,7 +192,7 @@ function decisionFilter(count, dieOutcome) {
     (pos) => seedPositions[pos] !== 0 && seedPositions[pos] + die <= 57
   );
   const outSeedsArray = seedValues.filter(
-    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 58
+    (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
   );
 
   const sCategories = { inSeedsArray, outSeedsArray, movableSeedsArray };
@@ -203,10 +206,25 @@ function decisionFilter(count, dieOutcome) {
       ? newSeedOut(inSeedsArray)
       : movableSeedsArray.length
       ? moveSeeds(movableSeedsArray, die)
+      : count < 1
+      ? checkNextSeed(die)
       : nextPlayer();
   } else {
-    movableSeedsArray.length ? moveSeeds(movableSeedsArray, die) : nextPlayer();
+    movableSeedsArray.length
+      ? moveSeeds(movableSeedsArray, die)
+      : count < 1
+      ? checkNextSeed(die)
+      : nextPlayer();
   }
+}
+
+function checkNextSeed(die) {
+  socket.emit("gameMoves", {
+    gameId,
+    gameMoves: "checkNextSeed",
+    seed: null,
+    die,
+  });
 }
 
 function nextPlayer() {
@@ -217,7 +235,7 @@ function nextPlayer() {
   let playerSeedsArray = [];
   let opponentSeedsArray = [];
 
-  const multiChildBoxes = Array.from(ludoBoxes) // Convert NodeList to array
+  Array.from(ludoBoxes) // Convert NodeList to array
     .filter((box) => box.children.length > 1) // Keep boxes with multiple children
     .map((box) => {
       const seeds = Array.from(box.children).map((child) => child.classList[1]); // Extract seed class names
@@ -240,10 +258,6 @@ function nextPlayer() {
       return null;
     })
     .filter((box) => box !== null); // Remove `null` values
-
-  console.log("Filtered Multi-Child Boxes:", multiChildBoxes);
-  console.log("Player Seeds Array:", playerSeedsArray);
-  console.log("Opponent Seeds Array:", opponentSeedsArray);
 
   socket.emit("nextPlayer", { gameId, playerSeedsArray, opponentSeedsArray });
 }
@@ -297,7 +311,7 @@ function moveSeeds(movableSeedsArray, die) {
         console.log(`You selected ${seed} from ${color} house`);
         socket.emit("gameMoves", {
           gameId,
-          gameMoves: "movableSeedsOut",
+          gameMoves: "moveSeeds",
           seed,
           die,
         });
@@ -331,11 +345,92 @@ function makeChoices(inSeedsArray, movableSeedsArray) {
         console.log(`You selected ${seed} from ${color} house`);
         socket.emit("gameMoves", {
           gameId,
-          gameMoves: "movableSeedsOut",
+          gameMoves: "moveSeeds",
           seed,
           die: 6,
         });
       });
     }
+  });
+}
+
+function updateGame() {
+  playersInfo.forEach((div) => (div.innerHTML = ""));
+  const { seedPositions, playersList } = gameObj;
+  playersList.forEach((player, index) => {
+    const assignedDiv = playersInfo[index % playersInfo.length]; // Distribute evenly
+    assignedDiv.innerHTML += `
+    <div class="player-block group">
+        <div class="flex items-center">
+            <img class="avatar" src="${player.player.image}" alt="${
+      player.player.username
+    }" referrerpolicy="no-referrer">
+            <div class="ms-3">
+                <h3 class="username">${player.player.username}</h3>
+                <div class="flex items-center justify-between border-black border-solid-4 w-full">
+                    ${player.seedColor
+                      .map(
+                        (color) => `
+                            <div class="flex ${color}-out">
+                                ${[1, 2, 3, 4]
+                                  .map(
+                                    () => `
+                                      <div class="out-seed"></div>
+                                    `
+                                  )
+                                  .join("")}
+                            </div>
+                        `
+                      )
+                      .join("")}
+                </div>
+            </div>
+        </div>
+    </div>
+  `;
+  });
+  updateSeedPositions(seedPositions);
+  const lastBoxes = {};
+  const lastBoxChildren = {};
+
+  // Get last finishing boxes and their children
+  ludoSections.forEach(({ color, finishing }) => {
+    const lastBoxNumber = finishing.at(-1); // Get last finishing box
+    const lastBoxElement = document.querySelector(`.square_${lastBoxNumber}`);
+
+    if (lastBoxElement) {
+      lastBoxes[color] = lastBoxElement;
+      lastBoxChildren[color] = Array.from(lastBoxElement.children).map(
+        (child) => child.classList[1].split("-")[0]
+      );
+    }
+  });
+
+  // Process and update out-seed containers
+  Object.entries(lastBoxChildren).forEach(([color, seeds]) => {
+    const lastBox = lastBoxes[color];
+
+    if (!lastBox) return;
+
+    // Clear all children from last box
+    lastBox.innerHTML = "";
+
+    // Get the corresponding out-seed container
+    const outSeedContainer = document.querySelector(`.flex.${color}-out`);
+    if (!outSeedContainer) return;
+
+    const outSeedDivs = outSeedContainer.querySelectorAll(".out-seed");
+
+    // Remove any existing color classes
+    outSeedDivs.forEach((seedDiv) => {
+      seedDiv.classList.remove("red", "blue", "green", "yellow"); // Ensure all possible colors are removed
+    });
+
+    // Add the correct color class to the necessary number of divs
+    seeds.forEach((_, index) => {
+      if (outSeedDivs[index]) {
+        outSeedDivs[index].classList.add(color);
+      }
+    });
   });
 }
