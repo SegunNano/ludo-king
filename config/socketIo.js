@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import session from "express-session";
+import mongoose from "mongoose";
 import sessionConfig from "./sessionConfig.js";
 import Game from "../models/gameModel.js";
 // import User from "../models/userModel.js";
@@ -52,7 +53,7 @@ export default function setupSocket(server) {
         socket.join(gameId);
         io.to(gameId).emit("gameUpdate", game);
       } catch (error) {
-        console.error("Error in joinRoom:", error);
+        console.error("1. Error in joinRoom:", error);
         socket.emit("error", "An error occurred while joining the room.");
       }
     });
@@ -67,48 +68,88 @@ export default function setupSocket(server) {
 
       io.to(gameId).emit("dieOutcome", dieOutcome);
     });
-    socket.on(
-      "nextPlayer",
-      async ({ gameId, playerSeedsArray, opponentSeedsArray }) => {
-        const game = await Game.findById(gameId).populate(
-          "playersList.player",
-          "username image"
-        );
-        const { playersList, playerNo, currentPlayer, seedPositions } = game;
-        if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
-          game.currentPlayer = (currentPlayer + 1) % playerNo;
-        }
+    socket.on("nextPlayer", async (info) => {
+      console.log("2", { info });
+      if (!info || !info.gameId) {
+        console.error("❌ Error: gameId is missing in nextPlayer event.");
+        return;
+      }
 
-        let nextPlayer = playersList[game.currentPlayer];
-        let seedValues = nextPlayer.seedColor.flatMap(
-          (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
+      let { gameId } = info;
+      console.log("✅ Received gameId:", gameId);
+
+      // Ensure gameId is a string
+      if (typeof gameId !== "string") {
+        console.error(
+          "❌ Error: gameId is not a string, received:",
+          typeof gameId,
+          gameId
         );
-        let outSeedsArray = seedValues.filter(
-          (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
-        );
-        while (outSeedsArray.length === 16 / playerNo) {
-          game.currentPlayer = (game.currentPlayer + 1) % playerNo;
-          nextPlayer = playersList.find(() => playersList[game.currentPlayer]);
-          seedValues = nextPlayer.seedColor.flatMap(
+        return;
+      }
+
+      // Ensure gameId is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(gameId)) {
+        console.error("❌ Error: Invalid gameId format:", gameId);
+        return;
+      }
+      if (info) {
+        const { gameId, playerSeedsArray, opponentSeedsArray } = info;
+        try {
+          console.log("🔍 Querying Game.findById with gameId:", gameId);
+          const game = await Game.findById(
+            new mongoose.Types.ObjectId(gameId)
+          ).populate("playersList.player", "username image");
+
+          if (!game) {
+            console.error("❌ Error: Game not found for gameId:", gameId);
+            return;
+          }
+
+          console.log("✅ Game found:", game);
+
+          const { playersList, playerNo, currentPlayer, seedPositions } = game;
+          if (!gameCache.get(gameId).dieOutcome.every((die) => die === 6)) {
+            game.currentPlayer = (currentPlayer + 1) % playerNo;
+          }
+
+          let nextPlayer = playersList[game.currentPlayer];
+          let seedValues = nextPlayer.seedColor.flatMap(
             (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
           );
-          outSeedsArray = seedValues.filter(
+          let outSeedsArray = seedValues.filter(
             (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
           );
-        }
+          while (outSeedsArray.length === 16 / playerNo) {
+            game.currentPlayer = (game.currentPlayer + 1) % playerNo;
+            nextPlayer = playersList.find(
+              () => playersList[game.currentPlayer]
+            );
+            seedValues = nextPlayer.seedColor.flatMap(
+              (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
+            );
+            outSeedsArray = seedValues.filter(
+              (pos) => seedPositions[pos] !== 0 && seedPositions[pos] === 57
+            );
+          }
 
-        if (playerSeedsArray?.length) {
-          updateSeedPositions(game, playerSeedsArray, 57);
-        }
-        if (opponentSeedsArray?.length) {
-          updateSeedPositions(game, opponentSeedsArray, 0);
-        }
+          if (playerSeedsArray?.length) {
+            updateSeedPositions(game, playerSeedsArray, 57);
+          }
+          if (opponentSeedsArray?.length) {
+            updateSeedPositions(game, opponentSeedsArray, 0);
+          }
 
-        await game.save();
+          await game.save();
 
-        io.to(gameId).emit("gameUpdate", game);
+          io.to(gameId).emit("gameUpdate", game);
+        } catch (error) {
+          console.log("4", error);
+        }
+      } else {
+        console.log("5, info is our problem");
       }
-    );
+    });
 
     socket.on("gameMoves", async (info) => {
       const { gameId, gameMoves, seed, die } = info;
@@ -130,8 +171,23 @@ export default function setupSocket(server) {
             ).populate("playersList.player", "username image");
       gameData.count += 1;
       const { count, dieOutcome } = gameData;
+      const {
+        _id,
+        seedPositions,
+        completed,
+        playersList,
+        playerNo,
+        playWithAnonymous,
+        currentPlayer,
+      } = game;
       io.to(gameId).emit("gameUpdate", {
-        ...game.toObject(),
+        _id,
+        seedPositions,
+        completed,
+        playersList,
+        playerNo,
+        playWithAnonymous,
+        currentPlayer,
         count,
         dieOutcome,
       });
@@ -150,7 +206,7 @@ export default function setupSocket(server) {
           io.to(game._id.toString()).emit("gameUpdate", game);
         }
       } catch (error) {
-        console.error("Error handling disconnect:", error);
+        console.error("6, Error handling disconnect:", error);
       }
     });
   });

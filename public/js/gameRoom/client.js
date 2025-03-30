@@ -219,6 +219,7 @@ function decisionFilter(count, dieOutcome) {
 }
 
 function checkNextSeed(die) {
+  console.log(gameId);
   socket.emit("gameMoves", {
     gameId,
     gameMoves: "checkNextSeed",
@@ -258,7 +259,7 @@ function nextPlayer() {
       return null;
     })
     .filter((box) => box !== null); // Remove `null` values
-
+  console.log("emitting next player", { gameObj, gameId });
   socket.emit("nextPlayer", { gameId, playerSeedsArray, opponentSeedsArray });
 }
 
