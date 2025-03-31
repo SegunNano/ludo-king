@@ -59,9 +59,17 @@ export default function setupSocket(server) {
           game.currentPlayer = 0;
           await game.save();
         }
-
-        // Join the room and notify all players
+        const gameData = gameCache.get(gameId);
         socket.join(gameId);
+        if (gameData && gameData.count === 1) {
+          io.to(gameId).emit("gameUpdate", {
+            ...game.toObject(),
+            count: gameData.count,
+            dieOutcome: gameData.dieOutcome,
+          });
+          return;
+        }
+        // Join the room and notify all players
         io.to(gameId).emit("gameUpdate", game);
       } catch (error) {
         console.error("1. Error in joinRoom:", error);
