@@ -34,5 +34,18 @@ function shuffleArray(array) {
   }
   return array;
 }
+function updateSeedPositions(game, seedsToUpdate, newValue) {
+  let updated = false;
+  seedsToUpdate.forEach((seed) => {
+    if (game.seedPositions.hasOwnProperty(seed)) {
+      // Ensure the seed exists
+      game.seedPositions[seed] = newValue;
+      updated = true;
+    }
+  });
+  if (updated) {
+    game.markModified("seedPositions");
+  }
+}
 
-export { demoBody, getSeedColor, shuffleArray };
+export { demoBody, getSeedColor, shuffleArray, updateSeedPositions };

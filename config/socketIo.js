@@ -1,10 +1,9 @@
 import { Server } from "socket.io";
 import session from "express-session";
-import mongoose from "mongoose";
 import sessionConfig from "./sessionConfig.js";
 import Game from "../models/gameModel.js";
 // import User from "../models/userModel.js";
-import { shuffleArray } from "../utils/utils.js";
+import { shuffleArray, updateSeedPositions } from "../utils/utils.js";
 const gameCache = new Map();
 
 const sessionMiddleware = session(sessionConfig);
@@ -40,6 +39,17 @@ export default function setupSocket(server) {
           return;
         }
 
+        game.playersList.forEach((player) => {
+          if (!io.sockets.sockets.has(player.socketId)) {
+            player.socketId = null; // Reset fake socketId
+          }
+
+          // Update current player's socketId
+          if (player.player._id.toString() === playerId) {
+            player.socketId = socket.id;
+          }
+        });
+
         const { playersList, playerNo, arrangeRandomly } = game;
 
         // If all players have joined, shuffle and start game
@@ -61,9 +71,8 @@ export default function setupSocket(server) {
 
     socket.on("rollDie", (gameId) => {
       const dieOutcome = [
-        // Math.floor(Math.random() * 6 + 1),
-        // Math.floor(Math.random() * 6 + 1),
-        6, 5,
+        Math.floor(Math.random() * 6 + 1),
+        Math.floor(Math.random() * 6 + 1),
       ];
       gameCache.set(gameId, { dieOutcome, count: 0 });
 
@@ -90,6 +99,7 @@ export default function setupSocket(server) {
         let outSeedsArray = seedValues.filter(
           (pos) => seedPositions[pos] === 57
         );
+        let loopCount = 0;
         while (outSeedsArray.length === 16 / playerNo) {
           game.currentPlayer = (game.currentPlayer + 1) % playerNo;
           nextPlayer = playersList[game.currentPlayer];
@@ -126,18 +136,30 @@ export default function setupSocket(server) {
           console.error("Game data not found in cache for gameId:", gameId);
           return;
         }
-        const updateFields =
-          gameMoves === "newSeedOut"
-            ? { [`seedPositions.${seed}`]: 1 }
-            : gameMoves === "checkNextSeed"
-            ? {}
-            : { [`seedPositions.${seed}`]: seedPositions[seed] + die };
 
-        const game = await Game.findByIdAndUpdate(
-          gameId,
-          { $set: updateFields },
-          { new: true }
+        const game = await Game.findById(gameId).populate(
+          "playersList.player",
+          "username image"
         );
+
+        if (!game) {
+          console.error("❌ Game not found for gameId:", gameId);
+          return;
+        }
+
+        const { seedPositions } = game;
+
+        // Modify game data directly
+        if (gameMoves === "newSeedOut") {
+          game.seedPositions[seed] = 1;
+        } else if (gameMoves !== "checkNextSeed") {
+          game.seedPositions[seed] = (seedPositions[seed] || 0) + die;
+        }
+
+        // Mark seedPositions as modified before saving
+        game.markModified("seedPositions");
+
+        await game.save(); // ✅ Save only once after modification
 
         gameData.count += 1;
         gameCache.set(gameId, gameData);
@@ -170,18 +192,4 @@ export default function setupSocket(server) {
   });
 
   return io;
-}
-
-function updateSeedPositions(game, seedsToUpdate, newValue) {
-  let updated = false;
-  seedsToUpdate.forEach((seed) => {
-    if (game.seedPositions.hasOwnProperty(seed)) {
-      // Ensure the seed exists
-      game.seedPositions[seed] = newValue;
-      updated = true;
-    }
-  });
-  if (updated) {
-    game.markModified("seedPositions");
-  }
 }
