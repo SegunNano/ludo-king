@@ -25,6 +25,7 @@ export default function setupSocket(server) {
         const playerId = socket.request.session.passport.user;
 
         // Update player's socketId
+        console.log(gameId, socket.id);
         const game = await Game.findByIdAndUpdate(
           gameId,
           { $set: { "playersList.$[elem].socketId": socket.id } },
@@ -122,9 +123,7 @@ export default function setupSocket(server) {
           );
           while (outSeedsArray.length === 16 / playerNo) {
             game.currentPlayer = (game.currentPlayer + 1) % playerNo;
-            nextPlayer = playersList.find(
-              () => playersList[game.currentPlayer]
-            );
+            nextPlayer = playersList[game.currentPlayer];
             seedValues = nextPlayer.seedColor.flatMap(
               (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
             );
@@ -153,22 +152,21 @@ export default function setupSocket(server) {
 
     socket.on("gameMoves", async (info) => {
       const { gameId, gameMoves, seed, die } = info;
-
+      console.log({ info });
       const gameData = gameCache.get(gameId);
-      const game =
+      const updateFields =
         gameMoves === "newSeedOut"
-          ? await Game.findByIdAndUpdate(
-              gameId,
-              { $set: { [`seedPositions.${seed}`]: 1 } },
-              { new: true }
-            ).populate("playersList.player", "username image")
+          ? { [`seedPositions.${seed}`]: 1 }
           : gameMoves === "checkNextSeed"
-          ? await Game.findById(gameId)
-          : await Game.findByIdAndUpdate(
-              gameId,
-              { $inc: { [`seedPositions.${seed}`]: die } },
-              { new: true }
-            ).populate("playersList.player", "username image");
+          ? {}
+          : { [`seedPositions.${seed}`]: seedPositions[seed] + die };
+
+      const game = await Game.findByIdAndUpdate(
+        gameId,
+        { $set: updateFields },
+        { new: true }
+      );
+
       gameData.count += 1;
       const { count, dieOutcome } = gameData;
       const {

@@ -27,22 +27,26 @@ const createGameRoom = async (req, res) => {
 };
 
 const gameRoom = async (req, res) => {
-  const { idx } = req.params;
-  const gameRoom = await Game.findById(idx);
-  if (!gameRoom) return res.redirect("/game/create-room");
-  const { playerNo, playersList, arrangeRandomly } = gameRoom;
-  const isPlayer = playersList.some(
-    (pl) => pl.player.toString() === req.user._id.toString()
-  );
-  if (isPlayer) return res.render("game/gameRoom");
-  if (playerNo === playersList.length) return res.redirect("/");
-  const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
+  try {
+    const { idx } = req.params;
+    const gameRoom = await Game.findById(idx);
+    if (!gameRoom) return res.redirect("/game/create-room");
+    const { playerNo, playersList, arrangeRandomly } = gameRoom;
+    const isPlayer = playersList.some(
+      (pl) => pl.player.toString() === req.user._id.toString()
+    );
+    if (isPlayer) return res.render("game/gameRoom");
+    if (playerNo === playersList.length) return res.redirect("/");
+    const seedColor = getSeedColor(playersList, playerNo, arrangeRandomly);
 
-  playersList.push({ player: req.user._id, seedColor });
+    playersList.push({ player: req.user._id, seedColor });
 
-  gameRoom.playersList = playersList;
-  await gameRoom.save();
+    gameRoom.playersList = playersList;
+    await gameRoom.save();
 
-  res.render("game/gameRoom");
+    res.render("game/gameRoom");
+  } catch (error) {
+    console.log(error);
+  }
 };
 export { gameRoomForm, createGameRoom, gameRoom };
