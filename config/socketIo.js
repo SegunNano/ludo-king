@@ -45,9 +45,8 @@ export default function setupSocket(server) {
           }
 
           // Update current player's socketId
-          if (player.player._id.toString() === playerId) {
+          if (player.player._id.toString() === playerId)
             player.socketId = socket.id;
-          }
         });
 
         const { playersList, playerNo, arrangeRandomly } = game;
