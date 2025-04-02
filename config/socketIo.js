@@ -23,7 +23,6 @@ export default function setupSocket(server) {
 
         const playerId = socket.request.session.passport.user;
 
-        // Update player's socketId
         console.log(gameId, socket.id);
         const game = await Game.findByIdAndUpdate(
           gameId,
@@ -40,18 +39,14 @@ export default function setupSocket(server) {
         }
 
         game.playersList.forEach((player) => {
-          if (!io.sockets.sockets.has(player.socketId)) {
-            player.socketId = null; // Reset fake socketId
-          }
+          if (!io.sockets.sockets.has(player.socketId)) player.socketId = null;
 
-          // Update current player's socketId
           if (player.player._id.toString() === playerId)
             player.socketId = socket.id;
         });
 
         const { playersList, playerNo, arrangeRandomly } = game;
 
-        // If all players have joined, shuffle and start game
         if (playersList.length === playerNo && arrangeRandomly) {
           game.playersList = shuffleArray(playersList);
           game.arrangeRandomly = undefined;
@@ -68,7 +63,6 @@ export default function setupSocket(server) {
           });
           return;
         }
-        // Join the room and notify all players
         io.to(gameId).emit("gameUpdate", game);
       } catch (error) {
         console.error("1. Error in joinRoom:", error);
@@ -130,7 +124,7 @@ export default function setupSocket(server) {
 
         io.to(gameId).emit("gameUpdate", game);
       } catch (error) {
-        console.log("4", error);
+        console.log(error);
       }
     });
 

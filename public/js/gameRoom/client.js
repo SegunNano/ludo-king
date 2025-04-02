@@ -40,6 +40,8 @@ const ludoSections = [
 const buttonDiv = document.querySelector(".buttons");
 const gameInfoPara = document.querySelector(".game-info");
 const playersInfo = document.querySelectorAll(".player-info");
+const dice1 = document.getElementById("dice-1");
+const dice2 = document.getElementById("dice-2");
 const redLastBox = document.querySelector(
   `.square_${ludoSections[1].finishing[6]}`
 );
@@ -117,8 +119,6 @@ function playGame() {
 }
 
 function rollDice(dieOutcome) {
-  const dice1 = document.getElementById("dice-1");
-  const dice2 = document.getElementById("dice-2");
   let count = 0;
   dice1.classList.add("rolling");
   dice2.classList.add("rolling");
@@ -171,6 +171,8 @@ function renderGame() {
 
 function decisionFilter(count, dieOutcome) {
   console.log({ count, dieOutcome });
+  dice1.innerHTML = getDiceFace(dieOutcome[0]);
+  dice2.innerHTML = getDiceFace(dieOutcome[1]);
   const lowNumDie = Math.min(...dieOutcome);
   const highNumDie = Math.max(...dieOutcome);
   const { playersList, seedPositions, currentPlayer } = gameObj;
@@ -236,12 +238,11 @@ function nextPlayer() {
   let playerSeedsArray = [];
   let opponentSeedsArray = [];
 
-  Array.from(ludoBoxes) // Convert NodeList to array
-    .filter((box) => box.children.length > 1) // Keep boxes with multiple children
+  Array.from(ludoBoxes)
+    .filter((box) => box.children.length > 1)
     .map((box) => {
-      const seeds = Array.from(box.children).map((child) => child.classList[1]); // Extract seed class names
+      const seeds = Array.from(box.children).map((child) => child.classList[1]);
 
-      // Separate player and opponent seeds
       const playerSeeds = seeds.filter((seed) =>
         currentPlayerSeedColors.some((color) => seed.startsWith(color))
       );
@@ -250,15 +251,14 @@ function nextPlayer() {
           !currentPlayerSeedColors.some((color) => seed.startsWith(color))
       );
 
-      // If the box contains both player and opponent seeds, return the separated lists
       if (playerSeeds.length > 0 && opponentSeeds.length > 0) {
-        playerSeedsArray.push(playerSeeds[0]); // Take first player seed
-        opponentSeedsArray.push(opponentSeeds[0]); // Take first opponent seed
+        playerSeedsArray.push(playerSeeds[0]);
+        opponentSeedsArray.push(opponentSeeds[0]);
         return seeds;
       }
       return null;
     })
-    .filter((box) => box !== null); // Remove `null` values
+    .filter((box) => box !== null);
   console.log("emitting next player", { gameObj, gameId });
   socket.emit("nextPlayer", { gameId, playerSeedsArray, opponentSeedsArray });
 }
