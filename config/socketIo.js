@@ -89,30 +89,46 @@ export default function setupSocket(server) {
 
         const { playersList, playerNo, currentPlayer, seedPositions } = game;
         const gameData = gameCache.get(gameId);
-        if (!gameData?.dieOutcome.every((die) => die === 6)) {
-          game.currentPlayer = (currentPlayer + 1) % playerNo;
-        }
-
-        let nextPlayer = playersList[game.currentPlayer];
-        let seedValues = nextPlayer.seedColor.flatMap(
+        let seedValues = playersList[game.currentPlayer].seedColor.flatMap(
           (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
         );
         let outSeedsArray = seedValues.filter(
           (pos) => seedPositions[pos] === 57
         );
-        let loopCount = 0;
-        while (outSeedsArray.length === 16 / playerNo) {
-          game.currentPlayer = (game.currentPlayer + 1) % playerNo;
-          nextPlayer = playersList[game.currentPlayer];
-          seedValues = nextPlayer.seedColor.flatMap(
-            (color) => [1, 2, 3, 4].map((num) => `${color}_${num}`) // Default to 0 if undefined
-          );
-          outSeedsArray = seedValues.filter((pos) => seedPositions[pos] === 57);
-          if (++loopCount >= playerNo) {
-            console.warn("All players completed their seeds. Ending loop.");
-            break;
-          }
+        if (
+          outSeedsArray.length === 16 / playerNo &&
+          !game.rankings.includes(playerId)
+        )
+          game.rankings.push(playerId);
+
+        const remainingPlayers = game.playersList.filter(
+          (p) => !game.rankings.includes(p.player._id.toString())
+        );
+
+        if (remainingPlayers.length === 1) {
+          game.rankings.push(remainingPlayers[0].player._id);
+          game.completed = true;
+          await game.save();
+
+          io.to(gameId).emit("gameEnd", {
+            message: "Game Over!",
+            rankings: game.rankings,
+          });
+
+          return;
         }
+
+        if (!gameData?.dieOutcome.every((die) => die === 6)) {
+          game.currentPlayer = (currentPlayer + 1) % playerNo;
+        }
+        do {
+          game.currentPlayer =
+            (game.currentPlayer + 1) % game.playersList.length;
+        } while (
+          game.rankings.includes(
+            game.playersList[game.currentPlayer].player._id.toString()
+          )
+        );
 
         if (playerSeedsArray?.length)
           updateSeedPositions(game, playerSeedsArray, 57);
