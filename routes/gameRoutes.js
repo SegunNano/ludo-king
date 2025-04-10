@@ -1,5 +1,5 @@
 import express from "express";
-import { catchAsync } from "../../url_shortener/utils/asyncHandlers.js";
+import { catchAsync } from "../middlewares/asyncHandlers.js";
 import {
   createGameRoom,
   gameRoom,
